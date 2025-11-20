@@ -1,0 +1,1 @@
+ALTER TABLE "posts_table" DROP COLUMN "updated_at";
