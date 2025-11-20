@@ -3,13 +3,13 @@ import { config } from 'dotenv';
 
 config({ path: '.env' });
 
-import { InsertUser, InsertPost } from './schema';
+import { InsertUser, InsertNote } from './schema';
 import {
   getUserById,
-  getUsersWithPostsCount,
-  getPostsForLast24Hours,
+  getUsersWithNotesCount,
+  getNotesForLast24Hours,
 } from './queries/select';
-import { createUser, createPost } from './queries/insert';
+import { createUser, createNote } from './queries/insert';
 
 const app = express();
 app.use(express.json());
@@ -21,7 +21,7 @@ app.get('/users', async (req, res) => {
   try {
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 5);
-    const users = await getUsersWithPostsCount(page, pageSize);
+    const users = await getUsersWithNotesCount(page, pageSize);
     res.json(users);
   } catch (err) {
     console.error(err);
@@ -56,37 +56,37 @@ app.post('/users', async (req, res) => {
   }
 });
 
-// Posts
-app.get('/posts', async (req, res) => {
+// Notes
+app.get('/notes', async (req, res) => {
   try {
     // If query `last24h=true` is provided, use that helper
     const last24h = req.query.last24h === 'true' || req.query.last24h === '1';
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 5);
     if (last24h) {
-      const posts = await getPostsForLast24Hours(page, pageSize);
-      return res.json(posts);
+      const notes = await getNotesForLast24Hours(page, pageSize);
+      return res.json(notes);
     }
     // fallback: reuse the last24h helper for now (you can add a general list later)
-    const posts = await getPostsForLast24Hours(page, pageSize);
-    res.json(posts);
+    const notes = await getNotesForLast24Hours(page, pageSize);
+    res.json(notes);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch posts' });
+    res.status(500).json({ error: 'Failed to fetch notes' });
   }
 });
 
-app.post('/posts', async (req, res) => {
+app.post('/notes', async (req, res) => {
   try {
-    const body = req.body as InsertPost;
+    const body = req.body as InsertNote;
     if (!body.title || !body.content || typeof body.userId !== 'number') {
       return res.status(400).json({ error: 'Missing or invalid fields' });
     }
-    await createPost(body);
+    await createNote(body);
     res.status(201).json({ ok: true });
   } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: err?.message ?? 'Failed to create post' });
+    res.status(500).json({ error: err?.message ?? 'Failed to create note' });
   }
 });
 
