@@ -6,8 +6,9 @@ config({ path: '.env' });
 import { InsertUser, InsertNote } from './schema';
 import {
   getUserById,
+  getNoteById,
   getUsersWithNotesCount,
-  getNotesForLast24Hours,
+  getNotes,
 } from './queries/select';
 import { createUser, createNote } from './queries/insert';
 
@@ -17,7 +18,7 @@ app.use(express.json());
 app.get('/', (_req, res) => res.send({ ok: true }));
 
 // Users
-app.get('/users', async (req, res) => {
+app.get('/users/all', async (req, res) => {
   try {
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 5);
@@ -57,22 +58,28 @@ app.post('/users', async (req, res) => {
 });
 
 // Notes
-app.get('/notes', async (req, res) => {
+app.get('/notes/all', async (req, res) => {
   try {
-    // If query `last24h=true` is provided, use that helper
-    const last24h = req.query.last24h === 'true' || req.query.last24h === '1';
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 5);
-    if (last24h) {
-      const notes = await getNotesForLast24Hours(page, pageSize);
-      return res.json(notes);
-    }
-    // fallback: reuse the last24h helper for now (you can add a general list later)
-    const notes = await getNotesForLast24Hours(page, pageSize);
+    const notes = await getNotes(page, pageSize);
     res.json(notes);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch notes' });
+  }
+});
+
+app.get('/notes/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const rows = await getNoteById(id);
+    const note = rows[0];
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+    res.json(note);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch note' });
   }
 });
 
