@@ -1,6 +1,6 @@
-import { asc, between, count, eq, getTableColumns, sql } from 'drizzle-orm';
+import { asc, count, eq, getTableColumns } from 'drizzle-orm';
 import { db } from '../db';
-import { SelectUser, SelectNote, usersTable, notesTable } from '../schema';
+import { SelectUser, SelectNote, usersTable, notesTable, noteVersionsTable } from '../schema';
 
 export async function getUserById(id: SelectUser['id']): Promise<
   Array<{
@@ -16,14 +16,27 @@ export async function getUserById(id: SelectUser['id']): Promise<
 export async function getNoteById(id: SelectNote['id']): Promise<
   Array<{
     id: number;
-    title: string;
-    content: string;
+    title: string | null;
+    content: string | null;
+    currentVersionId: number | null;
     userId: number;
     createdAt: Date;
     updatedAt: Date;
   }>
 > {
-  return db.select().from(notesTable).where(eq(notesTable.id, id));
+  return db
+    .select({
+      id: notesTable.id,
+      title: noteVersionsTable.title,
+      content: noteVersionsTable.content,
+      currentVersionId: notesTable.currentVersionId,
+      userId: notesTable.userId,
+      createdAt: notesTable.createdAt,
+      updatedAt: notesTable.updatedAt,
+    })
+    .from(notesTable)
+    .leftJoin(noteVersionsTable, eq(notesTable.currentVersionId, noteVersionsTable.id))
+    .where(eq(notesTable.id, id));
 }
 
 export async function getUsersWithNotesCount(
@@ -51,23 +64,44 @@ export async function getUsersWithNotesCount(
     .offset((page - 1) * pageSize);
 }
 
+export async function getNoteVersionByVersionId(versionId: number) {
+  return db
+    .select()
+    .from(noteVersionsTable)
+    .where(eq(noteVersionsTable.id, versionId));
+}
+
 export async function getNotes(
+  //join notestable with noteversionstable on currentversionid, get title and content from noteversionstable and userid from notestable
   page = 1,
   pageSize = 5,
 ): Promise<
   Array<{
     id: number;
-    title: string;
+    title: string | null;
+    content: string | null;
+    userId: number;
   }>
 > {
   return db
     .select({
       id: notesTable.id,
-      title: notesTable.title,
+      title: noteVersionsTable.title,
+      content: noteVersionsTable.content,
+      userId: notesTable.userId,
     })
     .from(notesTable)
-    .orderBy(asc(notesTable.title), asc(notesTable.id))
+    .leftJoin(noteVersionsTable, eq(notesTable.currentVersionId, noteVersionsTable.id))
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 }
+
+export async function getNoteVersions(noteId: number) {
+  return db
+    .select()
+    .from(noteVersionsTable)
+    .where(eq(noteVersionsTable.noteId, noteId))
+    .orderBy(asc(noteVersionsTable.id));
+}
+
 
