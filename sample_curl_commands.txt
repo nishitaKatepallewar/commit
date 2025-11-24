@@ -1,0 +1,23 @@
+curl -X POST http://localhost:3000/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":1,"title":"First note","content":"Version 1 body"}'
+
+curl -X PATCH http://localhost:3000/notes/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Updated body for version 2"}'
+
+curl http://localhost:3000/notes/all
+
+curl http://localhost:3000/notes/1
+
+curl http://localhost:3000/notes/1/versions
+
+curl -X POST http://localhost:3000/notes/1/restore/2
+
+curl -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada Lovelace","email":"ada@example.com","age":36}'
+
+curl 'http://localhost:3000/users/all?page=1&pageSize=5'
+
+curl http://localhost:3000/users/1
